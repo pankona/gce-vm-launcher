@@ -23,7 +23,13 @@ func Start(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	err = gce.DoOperation(ctx, computeService, "start")
+	g := gce.GCE{
+		Project:  "sponge-is-dry",
+		Zone:     "asia-northeast1-b",
+		Instance: "mario",
+	}
+
+	err = g.DoOperation(ctx, computeService, "start")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("%s\n", err.Error())))
@@ -43,7 +49,13 @@ func Stop(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	err = gce.DoOperation(ctx, computeService, "stop")
+	g := gce.GCE{
+		Project:  "sponge-is-dry",
+		Zone:     "asia-northeast1-b",
+		Instance: "mario",
+	}
+
+	err = g.DoOperation(ctx, computeService, "stop")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("%s\n", err.Error())))
@@ -63,7 +75,13 @@ func Status(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	status, externalIP, err := gce.GetStatus(ctx, computeService)
+	g := gce.GCE{
+		Project:  "sponge-is-dry",
+		Zone:     "asia-northeast1-b",
+		Instance: "mario",
+	}
+
+	status, externalIP, err := g.GetStatus(ctx, computeService)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("%s\n", err.Error())))
