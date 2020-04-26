@@ -10,6 +10,7 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/option"
 )
 
 func main() {
@@ -24,7 +25,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	computeService, err := compute.New(c)
+	computeService, err := compute.NewService(ctx, option.WithHTTPClient(c))
 	if err != nil {
 		log.Fatal(err)
 	}

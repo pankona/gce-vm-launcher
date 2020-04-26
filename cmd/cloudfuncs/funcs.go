@@ -9,6 +9,7 @@ import (
 	"github.com/pankona/gce-vm-launcher/gce"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/option"
 )
 
 func withComputeService(f func(ctx context.Context, computeService *compute.Service, g gce.GCE)) {
@@ -18,7 +19,7 @@ func withComputeService(f func(ctx context.Context, computeService *compute.Serv
 		log.Fatal(err)
 	}
 
-	computeService, err := compute.New(c)
+	computeService, err := compute.NewService(ctx, option.WithHTTPClient(c))
 	if err != nil {
 		log.Fatal(err)
 	}
