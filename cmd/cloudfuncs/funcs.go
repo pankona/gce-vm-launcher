@@ -38,7 +38,10 @@ func Start(w http.ResponseWriter, r *http.Request) {
 		err := g.DoOperation(ctx, computeService, "start")
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(fmt.Sprintf("%s\n", err.Error())))
+			_, err = w.Write([]byte(fmt.Sprintf("%s\n", err.Error())))
+			if err != nil {
+				log.Printf("failed write response: %v", err)
+			}
 		}
 		w.WriteHeader(http.StatusOK)
 	})
@@ -49,7 +52,10 @@ func Stop(w http.ResponseWriter, r *http.Request) {
 		err := g.DoOperation(ctx, computeService, "stop")
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(fmt.Sprintf("%s\n", err.Error())))
+			_, err = w.Write([]byte(fmt.Sprintf("%s\n", err.Error())))
+			if err != nil {
+				log.Printf("failed write response: %v", err)
+			}
 		}
 		w.WriteHeader(http.StatusOK)
 	})
@@ -60,9 +66,15 @@ func Status(w http.ResponseWriter, r *http.Request) {
 		status, externalIP, err := g.GetStatus(ctx, computeService)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(fmt.Sprintf("%s\n", err.Error())))
+			_, err = w.Write([]byte(fmt.Sprintf("%s\n", err.Error())))
+			if err != nil {
+				log.Printf("failed write response: %v", err)
+			}
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf("status: %v, external ip: %v\n", status, externalIP)))
+		_, err = w.Write([]byte(fmt.Sprintf("status: %v, external ip: %v\n", status, externalIP)))
+		if err != nil {
+			log.Printf("failed write response: %v", err)
+		}
 	})
 }
