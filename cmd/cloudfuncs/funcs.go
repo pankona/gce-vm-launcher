@@ -1,16 +1,52 @@
-package funcs
+package cloudfuncs
 
 import (
 	"context"
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 
 	"github.com/pankona/gce-vm-launcher/gce"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
 )
+
+func Launch(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	err := validateArguments(q)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	request := q["req"][0]
+	switch request {
+	case "start":
+		start(w)
+	case "stop":
+		stop(w)
+	case "status":
+		status(w)
+	}
+}
+
+func validateArguments(v url.Values) error {
+	request := v["req"]
+	if len(request) == 0 {
+		return fmt.Errorf("query parameter req is missing")
+	}
+	switch request[0] {
+	case "start":
+	case "stop":
+	case "status":
+	default:
+		return fmt.Errorf("unsupported req. Please specify one of start, stop or status.")
+	}
+
+	return nil
+}
 
 func withComputeService(f func(ctx context.Context, computeService *compute.Service, g gce.GCE)) {
 	ctx := context.Background()
@@ -33,7 +69,7 @@ func withComputeService(f func(ctx context.Context, computeService *compute.Serv
 	f(ctx, computeService, g)
 }
 
-func Start(w http.ResponseWriter, r *http.Request) {
+func start(w http.ResponseWriter) {
 	withComputeService(func(ctx context.Context, computeService *compute.Service, g gce.GCE) {
 		err := g.DoOperation(ctx, computeService, "start")
 		if err != nil {
@@ -47,7 +83,7 @@ func Start(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func Stop(w http.ResponseWriter, r *http.Request) {
+func stop(w http.ResponseWriter) {
 	withComputeService(func(ctx context.Context, computeService *compute.Service, g gce.GCE) {
 		err := g.DoOperation(ctx, computeService, "stop")
 		if err != nil {
@@ -61,7 +97,7 @@ func Stop(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func Status(w http.ResponseWriter, r *http.Request) {
+func status(w http.ResponseWriter) {
 	withComputeService(func(ctx context.Context, computeService *compute.Service, g gce.GCE) {
 		status, externalIP, err := g.GetStatus(ctx, computeService)
 		if err != nil {
