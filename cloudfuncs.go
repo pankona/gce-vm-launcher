@@ -13,16 +13,18 @@ import (
 	"google.golang.org/api/option"
 )
 
-func Launch(w http.ResponseWriter, r *http.Request) {
+func Command(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	err := validateArguments(q)
+	arg, err := getArgument(q)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		if _, err = w.Write([]byte(err.Error())); err != nil {
+			log.Printf("failed to write response: %v", err)
+		}
 		return
 	}
 
-	request := q["req"][0]
-	switch request {
+	switch arg {
 	case "start":
 		start(w)
 	case "stop":
@@ -32,20 +34,20 @@ func Launch(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func validateArguments(v url.Values) error {
-	request := v["req"]
-	if len(request) == 0 {
-		return fmt.Errorf("query parameter req is missing")
+func getArgument(v url.Values) (string, error) {
+	arg := v["arg"]
+	if len(arg) == 0 {
+		return "", fmt.Errorf("query parameter arg is missing")
 	}
-	switch request[0] {
+	switch arg[0] {
 	case "start":
 	case "stop":
 	case "status":
 	default:
-		return fmt.Errorf("unsupported req. Please specify one of start, stop or status.")
+		return "", fmt.Errorf("unsupported arg. Please specify one of start, stop or status.")
 	}
 
-	return nil
+	return arg[0], nil
 }
 
 func withComputeService(f func(ctx context.Context, computeService *compute.Service, g gce.GCE)) {
@@ -60,6 +62,7 @@ func withComputeService(f func(ctx context.Context, computeService *compute.Serv
 		log.Fatal(err)
 	}
 
+	// TODO: get instance name from environment variables or request parameter
 	g := gce.GCE{
 		Project:  "sponge-is-dry",
 		Zone:     "asia-northeast1-b",
