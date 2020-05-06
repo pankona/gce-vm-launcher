@@ -82,7 +82,11 @@ func start(w http.ResponseWriter) {
 				log.Printf("failed write response: %v", err)
 			}
 		}
+
 		w.WriteHeader(http.StatusOK)
+		if _, err = w.Write([]byte("accepted: [start]")); err != nil {
+			log.Printf("failed write response: %v", err)
+		}
 	})
 }
 
@@ -96,7 +100,11 @@ func stop(w http.ResponseWriter) {
 				log.Printf("failed write response: %v", err)
 			}
 		}
+
 		w.WriteHeader(http.StatusOK)
+		if _, err = w.Write([]byte("accepted: [stop]")); err != nil {
+			log.Printf("failed write response: %v", err)
+		}
 	})
 }
 
@@ -111,8 +119,7 @@ func status(w http.ResponseWriter) {
 			}
 		}
 		w.WriteHeader(http.StatusOK)
-		_, err = w.Write([]byte(fmt.Sprintf("status: %v, external ip: %v\n", status, externalIP)))
-		if err != nil {
+		if _, err = w.Write([]byte(fmt.Sprintf("status: %v, external ip: %v\n", status, externalIP))); err != nil {
 			log.Printf("failed write response: %v", err)
 		}
 	})
