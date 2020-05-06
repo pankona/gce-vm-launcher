@@ -44,11 +44,21 @@ func main() {
 	case "stop":
 		err = g.DoOperation(ctx, computeService, request)
 	case "status":
-		err = g.ShowStatus(ctx, computeService)
+		err = showStatus(ctx, computeService, g)
 	}
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func showStatus(ctx context.Context, computeService *compute.Service, g gce.GCE) error {
+	status, externalIP, err := g.GetStatus(ctx, computeService)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("status: %v, external ip: %v\n", status, externalIP)
+	return nil
 }
 
 func validateArguments() bool {

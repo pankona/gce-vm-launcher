@@ -34,16 +34,6 @@ func (g *GCE) DoOperation(ctx context.Context, computeService *compute.Service, 
 	return fmt.Errorf("unknown argument [%s] is specified", arg)
 }
 
-func (g *GCE) ShowStatus(ctx context.Context, computeService *compute.Service) error {
-	status, externalIP, err := g.GetStatus(ctx, computeService)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("status: %v, external ip: %v\n", status, externalIP)
-	return nil
-}
-
 func (g *GCE) GetStatus(ctx context.Context, computeService *compute.Service) (string, string, error) {
 	resp, err := computeService.Instances.Get(g.Project, g.Zone, g.Instance).Context(ctx).Do()
 	if err != nil {
