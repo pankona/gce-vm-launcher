@@ -4,3 +4,6 @@ all:
 
 lint:
 	golangci-lint run
+
+deploy-cloud-functions:
+	gcloud functions deploy vm --runtime go113 --entry-point Command --trigger-http --allow-unauthenticated --memory=128MB --region=asia-northeast1
