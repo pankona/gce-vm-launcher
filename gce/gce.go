@@ -19,19 +19,19 @@ func (g *GCE) DoOperation(ctx context.Context, computeService *compute.Service, 
 	switch arg {
 	case "start":
 		log.Println("starting instance")
-		_, err = computeService.Instances.Start(g.Project, g.Zone, g.Instance).Context(ctx).Do()
-		if err != nil {
+		if _, err = computeService.Instances.Start(g.Project, g.Zone, g.Instance).Context(ctx).Do(); err != nil {
 			return err
 		}
 	case "stop":
 		log.Println("stopping instance")
-		_, err = computeService.Instances.Stop(g.Project, g.Zone, g.Instance).Context(ctx).Do()
-		if err != nil {
+		if _, err = computeService.Instances.Stop(g.Project, g.Zone, g.Instance).Context(ctx).Do(); err != nil {
 			return err
 		}
+	default:
+		return fmt.Errorf("unknown argument [%s] is specified", arg)
 	}
 
-	return fmt.Errorf("unknown argument [%s] is specified", arg)
+	return nil
 }
 
 func (g *GCE) GetStatus(ctx context.Context, computeService *compute.Service) (string, string, error) {
