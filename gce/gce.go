@@ -3,7 +3,7 @@ package gce
 import (
 	"context"
 	"fmt"
-	"time"
+	"log"
 
 	"google.golang.org/api/compute/v1"
 )
@@ -14,51 +14,24 @@ type GCE struct {
 	Instance string
 }
 
-func (g *GCE) DoOperation(ctx context.Context, computeService *compute.Service, request string) error {
+func (g *GCE) DoOperation(ctx context.Context, computeService *compute.Service, arg string) error {
 	var err error
-	if request == "start" {
-		fmt.Println("starting instance")
+	switch arg {
+	case "start":
+		log.Println("starting instance")
 		_, err = computeService.Instances.Start(g.Project, g.Zone, g.Instance).Context(ctx).Do()
 		if err != nil {
 			return err
 		}
-		for {
-			status, _, err := g.GetStatus(ctx, computeService)
-			if err != nil {
-				return err
-			}
-
-			fmt.Printf("current status: %s\n", status)
-
-			switch status {
-			case "RUNNING":
-				return nil
-			}
-			<-time.After(1 * time.Second)
-		}
-	} else if request == "stop" {
-		fmt.Println("stopping instance")
+	case "stop":
+		log.Println("stopping instance")
 		_, err = computeService.Instances.Stop(g.Project, g.Zone, g.Instance).Context(ctx).Do()
 		if err != nil {
 			return err
 		}
-		for {
-			status, _, err := g.GetStatus(ctx, computeService)
-			if err != nil {
-				return err
-			}
-
-			fmt.Printf("current status: %s\n", status)
-
-			switch status {
-			case "TERMINATED":
-				return nil
-			}
-			<-time.After(1 * time.Second)
-		}
 	}
 
-	return fmt.Errorf("unknown request [%s] is specified", request)
+	return fmt.Errorf("unknown argument [%s] is specified", arg)
 }
 
 func (g *GCE) ShowStatus(ctx context.Context, computeService *compute.Service) error {
@@ -66,7 +39,8 @@ func (g *GCE) ShowStatus(ctx context.Context, computeService *compute.Service) e
 	if err != nil {
 		return err
 	}
-	fmt.Printf("status: %v, external ip: %v\n", status, externalIP)
+
+	log.Printf("status: %v, external ip: %v\n", status, externalIP)
 	return nil
 }
 
@@ -82,5 +56,6 @@ func (g *GCE) GetStatus(ctx context.Context, computeService *compute.Service) (s
 			externalIP = v2.NatIP
 		}
 	}
+
 	return resp.Status, externalIP, nil
 }
