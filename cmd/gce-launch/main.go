@@ -33,9 +33,9 @@ func main() {
 	request := os.Args[1]
 
 	g := gce.GCE{
-		Project:  "sponge-is-dry",
-		Zone:     "asia-northeast1-b",
-		Instance: "mario",
+		Project:  os.Getenv("GCE_VM_LAUNCHER_PROJECT"),
+		Zone:     os.Getenv("GCE_VM_LAUNCHER_ZONE"),
+		Instance: os.Getenv("GCE_VM_LAUNCHER_INSTANCE"),
 	}
 
 	switch request {
@@ -74,6 +74,19 @@ func validateArguments() bool {
 	case "status":
 	default:
 		fmt.Println("Unsupported argument. Please specify one of start, stop or status.")
+		return false
+	}
+
+	if os.Getenv("GCE_VM_LAUNCHER_PROJECT") == "" {
+		fmt.Println("Environment variable GCP_VM_LAUNCHER_PROJECT is not specified.")
+		return false
+	}
+	if os.Getenv("GCE_VM_LAUNCHER_ZONE") == "" {
+		fmt.Println("Environment variable GCP_VM_LAUNCHER_ZONE is not specified.")
+		return false
+	}
+	if os.Getenv("GCE_VM_LAUNCHER_INSTANCE") == "" {
+		fmt.Println("Environment variable GCP_VM_LAUNCHER_INSTANCE is not specified.")
 		return false
 	}
 

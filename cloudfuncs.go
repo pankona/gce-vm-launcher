@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 
 	"github.com/pankona/gce-vm-launcher/gce"
 	"golang.org/x/oauth2/google"
@@ -62,11 +63,10 @@ func withComputeService(f func(ctx context.Context, computeService *compute.Serv
 		log.Fatal(err)
 	}
 
-	// TODO: get instance name from environment variables or request parameter
 	g := gce.GCE{
-		Project:  "sponge-is-dry",
-		Zone:     "asia-northeast1-b",
-		Instance: "mario",
+		Project:  os.Getenv("GCE_VM_LAUNCHER_PROJECT"),
+		Zone:     os.Getenv("GCE_VM_LAUNCHER_ZONE"),
+		Instance: os.Getenv("GCE_VM_LAUNCHER_INSTANCE"),
 	}
 
 	f(ctx, computeService, g)

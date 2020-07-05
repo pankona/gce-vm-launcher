@@ -1,0 +1,5 @@
+# Rename this file to env.yaml
+
+GCE_VM_LAUNCHER_PROJECT: <update me>
+GCE_VM_LAUNCHER_ZONE: <update me>
+GCE_VM_LAUNCHER_INSTANCE: <update me>
