@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 
+	"cloud.google.com/go/datastore"
 	"github.com/pankona/gce-vm-launcher/gce"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/compute/v1"
@@ -51,6 +53,32 @@ func getArgument(v url.Values) (string, error) {
 	return arg[0], nil
 }
 
+type statusStore struct {
+	projectID string
+}
+
+type Status struct {
+	Time   time.Time `datastore:"time"`
+	Status string    `datastore:"status"`
+}
+
+func (ss *statusStore) Save(ctx context.Context, status gce.GCEStatus) error {
+	s := Status{
+		Time:   status.Time,
+		Status: status.Status,
+	}
+
+	client, err := datastore.NewClient(ctx, ss.projectID)
+	if err != nil {
+		return err
+	}
+
+	key := datastore.IncompleteKey("Status", nil)
+	_, err = client.Put(ctx, key, &s)
+
+	return err
+}
+
 func withComputeService(f func(ctx context.Context, computeService *compute.Service, g gce.GCE)) {
 	ctx := context.Background()
 	c, err := google.DefaultClient(ctx, compute.CloudPlatformScope)
@@ -64,9 +92,10 @@ func withComputeService(f func(ctx context.Context, computeService *compute.Serv
 	}
 
 	g := gce.GCE{
-		Project:  os.Getenv("GCE_VM_LAUNCHER_PROJECT"),
-		Zone:     os.Getenv("GCE_VM_LAUNCHER_ZONE"),
-		Instance: os.Getenv("GCE_VM_LAUNCHER_INSTANCE"),
+		Project:     os.Getenv("GCE_VM_LAUNCHER_PROJECT"),
+		Zone:        os.Getenv("GCE_VM_LAUNCHER_ZONE"),
+		Instance:    os.Getenv("GCE_VM_LAUNCHER_INSTANCE"),
+		StatusStore: &statusStore{projectID: os.Getenv("GCE_VM_LAUNCHER_PROJECT")},
 	}
 
 	f(ctx, computeService, g)
@@ -117,6 +146,34 @@ func status(w http.ResponseWriter) {
 			if err != nil {
 				log.Printf("failed write response: %v", err)
 			}
+		}
+		w.WriteHeader(http.StatusOK)
+		if _, err = w.Write([]byte(fmt.Sprintf("status: %v, external ip: %v\n", status, externalIP))); err != nil {
+			log.Printf("failed write response: %v", err)
+		}
+	})
+}
+
+func StoreStatus(w http.ResponseWriter, r *http.Request) {
+	withComputeService(func(ctx context.Context, computeService *compute.Service, g gce.GCE) {
+		status, externalIP, err := g.GetStatus(ctx, computeService)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, err = w.Write([]byte(fmt.Sprintf("%s\n", err.Error())))
+			if err != nil {
+				log.Printf("failed write response: %v", err)
+			}
+			return
+		}
+
+		err = g.WriteStatus(ctx, status)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, err = w.Write([]byte(fmt.Sprintf("%s\n", err.Error())))
+			if err != nil {
+				log.Printf("failed write status to data repository: %v", err)
+			}
+			return
 		}
 		w.WriteHeader(http.StatusOK)
 		if _, err = w.Write([]byte(fmt.Sprintf("status: %v, external ip: %v\n", status, externalIP))); err != nil {

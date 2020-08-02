@@ -4,14 +4,25 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"google.golang.org/api/compute/v1"
 )
 
+type GCEStatus struct {
+	Time   time.Time
+	Status string
+}
+
+type StatusStore interface {
+	Save(ctx context.Context, s GCEStatus) error
+}
+
 type GCE struct {
-	Project  string
-	Zone     string
-	Instance string
+	Project     string
+	Zone        string
+	Instance    string
+	StatusStore StatusStore
 }
 
 func (g *GCE) DoOperation(ctx context.Context, computeService *compute.Service, arg string) error {
@@ -48,4 +59,11 @@ func (g *GCE) GetStatus(ctx context.Context, computeService *compute.Service) (s
 	}
 
 	return resp.Status, externalIP, nil
+}
+
+func (g *GCE) WriteStatus(ctx context.Context, status string) error {
+	return g.StatusStore.Save(ctx, GCEStatus{
+		Time:   time.Now(),
+		Status: status,
+	})
 }
