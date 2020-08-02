@@ -79,16 +79,16 @@ func (ss *statusStore) Save(ctx context.Context, status gce.GCEStatus) error {
 	return err
 }
 
-func withComputeService(f func(ctx context.Context, computeService *compute.Service, g gce.GCE)) {
+func withComputeService(f func(ctx context.Context, computeService *compute.Service, g gce.GCE) error) error {
 	ctx := context.Background()
 	c, err := google.DefaultClient(ctx, compute.CloudPlatformScope)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	computeService, err := compute.NewService(ctx, option.WithHTTPClient(c))
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	g := gce.GCE{
@@ -98,11 +98,11 @@ func withComputeService(f func(ctx context.Context, computeService *compute.Serv
 		StatusStore: &statusStore{projectID: os.Getenv("GCE_VM_LAUNCHER_PROJECT")},
 	}
 
-	f(ctx, computeService, g)
+	return f(ctx, computeService, g)
 }
 
 func start(w http.ResponseWriter) {
-	withComputeService(func(ctx context.Context, computeService *compute.Service, g gce.GCE) {
+	_ = withComputeService(func(ctx context.Context, computeService *compute.Service, g gce.GCE) error {
 		err := g.DoOperation(ctx, computeService, "start")
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -116,11 +116,13 @@ func start(w http.ResponseWriter) {
 		if _, err = w.Write([]byte("accepted: [start]")); err != nil {
 			log.Printf("failed write response: %v", err)
 		}
+
+		return nil
 	})
 }
 
 func stop(w http.ResponseWriter) {
-	withComputeService(func(ctx context.Context, computeService *compute.Service, g gce.GCE) {
+	_ = withComputeService(func(ctx context.Context, computeService *compute.Service, g gce.GCE) error {
 		err := g.DoOperation(ctx, computeService, "stop")
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -134,50 +136,46 @@ func stop(w http.ResponseWriter) {
 		if _, err = w.Write([]byte("accepted: [stop]")); err != nil {
 			log.Printf("failed write response: %v", err)
 		}
+
+		return nil
 	})
 }
 
 func status(w http.ResponseWriter) {
-	withComputeService(func(ctx context.Context, computeService *compute.Service, g gce.GCE) {
+	_ = withComputeService(func(ctx context.Context, computeService *compute.Service, g gce.GCE) error {
 		status, externalIP, err := g.GetStatus(ctx, computeService)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, err = w.Write([]byte(fmt.Sprintf("%s\n", err.Error())))
 			if err != nil {
-				log.Printf("failed write response: %v", err)
+				return fmt.Errorf("failed write response: %v", err)
 			}
 		}
 		w.WriteHeader(http.StatusOK)
 		if _, err = w.Write([]byte(fmt.Sprintf("status: %v, external ip: %v\n", status, externalIP))); err != nil {
-			log.Printf("failed write response: %v", err)
+			return fmt.Errorf("failed write response: %v", err)
 		}
+
+		return nil
 	})
 }
 
-func StoreStatus(w http.ResponseWriter, r *http.Request) {
-	withComputeService(func(ctx context.Context, computeService *compute.Service, g gce.GCE) {
-		status, externalIP, err := g.GetStatus(ctx, computeService)
+type PubSubMessage struct {
+	Data []byte `json:"data"`
+}
+
+func StoreStatus(ctx context.Context, _ PubSubMessage) error {
+	return withComputeService(func(ctx context.Context, computeService *compute.Service, g gce.GCE) error {
+		status, _, err := g.GetStatus(ctx, computeService)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			_, err = w.Write([]byte(fmt.Sprintf("%s\n", err.Error())))
-			if err != nil {
-				log.Printf("failed write response: %v", err)
-			}
-			return
+			return err
 		}
 
 		err = g.WriteStatus(ctx, status)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			_, err = w.Write([]byte(fmt.Sprintf("%s\n", err.Error())))
-			if err != nil {
-				log.Printf("failed write status to data repository: %v", err)
-			}
-			return
+			return err
 		}
-		w.WriteHeader(http.StatusOK)
-		if _, err = w.Write([]byte(fmt.Sprintf("status: %v, external ip: %v\n", status, externalIP))); err != nil {
-			log.Printf("failed write response: %v", err)
-		}
+
+		return nil
 	})
 }
