@@ -105,8 +105,6 @@ func (ss *statusStore) Save(ctx context.Context, status gce.GCEStatus) error {
 		err = client.Delete(ctx, key)
 		if err != nil {
 			log.Printf("failed to delete continuous TERMINATED: %v\n", err)
-		} else {
-			log.Printf("%v deleted\n", key)
 		}
 	}
 
