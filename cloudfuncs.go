@@ -13,6 +13,7 @@ import (
 	"github.com/pankona/gce-vm-launcher/gce"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
 
@@ -62,6 +63,29 @@ type Status struct {
 	Status string    `datastore:"status"`
 }
 
+func (ss *statusStore) lastRecord(ctx context.Context, client *datastore.Client) (*datastore.Key, Status, error) {
+	q := datastore.NewQuery("Status").Order("-time").Limit(1)
+	it := client.Run(ctx, q)
+
+	var (
+		s   Status
+		ret *datastore.Key
+	)
+
+	for {
+		key, err := it.Next(&s)
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, Status{}, err
+		}
+		ret = key
+	}
+
+	return ret, s, nil
+}
+
 func (ss *statusStore) Save(ctx context.Context, status gce.GCEStatus) error {
 	s := Status{
 		Time:   status.Time,
@@ -72,8 +96,21 @@ func (ss *statusStore) Save(ctx context.Context, status gce.GCEStatus) error {
 	if err != nil {
 		return err
 	}
+	key, st, err := ss.lastRecord(ctx, client)
+	if err != nil {
+		return err
+	}
 
-	key := datastore.IncompleteKey("Status", nil)
+	if status.Status == "TERMINATED" && st.Status == "TERMINATED" {
+		err = client.Delete(ctx, key)
+		if err != nil {
+			log.Printf("failed to delete continuous TERMINATED: %v\n", err)
+		} else {
+			log.Printf("%v deleted\n", key)
+		}
+	}
+
+	key = datastore.IncompleteKey("Status", nil)
 	_, err = client.Put(ctx, key, &s)
 
 	return err
