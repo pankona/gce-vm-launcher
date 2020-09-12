@@ -50,7 +50,7 @@ func monthlyRecords(ctx context.Context, client *datastore.Client, month string)
 	}
 	to := endOfMonth(from)
 
-	fmt.Println("from to: ", from, to)
+	fmt.Printf("calculating uptime of %v\n", from.Format("2006-01"))
 
 	q := datastore.NewQuery("Status").
 		Filter("time >=", from).
