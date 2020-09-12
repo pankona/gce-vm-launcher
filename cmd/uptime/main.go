@@ -13,6 +13,10 @@ import (
 
 func main() {
 	projectID := os.Getenv("GCE_VM_LAUNCHER_PROJECT")
+	if projectID == "" {
+		fmt.Println("error: please specify GCE_VM_LAUNCHER_PROJECT environment variable.")
+		os.Exit(1)
+	}
 	Run(context.Background(), projectID)
 }
 
